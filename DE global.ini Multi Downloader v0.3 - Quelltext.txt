@@ -1,0 +1,308 @@
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+public class MainForm : Form
+{
+    // GUI-Elemente
+    private TextBox txtQuelle1, txtQuelle2, txtQuelle3, txtQuelle4;
+    private CheckBox chkQuelle2, chkQuelle3, chkQuelle4;
+    private Button btnDownload, btnImport, btnSave, btnBrowse2, btnBrowse3, btnBrowse4, btnOpenUrl;
+    private Label lblDescription, lblQuelle1, lblQuelle2, lblQuelle3, lblQuelle4;
+
+    public MainForm()
+    {
+        // Fenstergröße definieren
+        this.Width = 950;
+        this.Height = 450;
+
+        // Initialisieren der Form-Komponenten
+        InitializeComponent();
+        this.Text = "DE global.ini Downloader v0.3";  // Titel
+    }
+
+    private void InitializeComponent()
+    {
+        // Programmbeschreibung als Label
+        lblDescription = new Label
+        {
+            Text = "Vielen Dank, dass du den 'DE global.ini Downloader' nutzt!\n" +
+                   "Hiermit bleibt deine Übersetzung auf dem aktuellsten Stand. Von der Community, für die Community!\n\n" +
+                   "Dieses Programm ermöglicht dir das Herunterladen der global.ini Datei aus einer angegebenen URL und das Speichern dieser Datei in bis zu drei lokalen Verzeichnissen.\n" +
+                   "Du kannst steuern, in welchen Verzeichnissen die Datei aktualisiert werden soll, indem du vor dem Dateipfad ein Häkchen setzt.\n" + 
+                   "Zusätzlich hast du die Möglichkeit, eigene Quellpfade aus der Textdatei 'sources.txt' zu importieren, oder deine aktuellen Eingaben dorthin zu exportieren.\n\n" +
+                   "Bitte beachte, dass du sowohl beim Link, als auch beim Dateipfad immer die 'global.ini' als Endung verwendest.\n\n" +
+                   "Wir sehen uns im Verse!",
+            AutoSize = true,
+            Top = 10,
+            Left = 10,
+            Width = 550,
+            Height = 300
+        };
+
+        // Labels für Quellen
+        lblQuelle1 = new Label { Text = "Link zur global.ini", Top = 220, Left = 10 };
+        lblQuelle2 = new Label { Text = "Speicherpfad 1", Top = 250, Left = 10 };
+        lblQuelle3 = new Label { Text = "Speicherpfad 2", Top = 280, Left = 10 };
+        lblQuelle4 = new Label { Text = "Speicherpfad 3", Top = 310, Left = 10 };
+
+        // TextBox für URLs und Dateipfade
+        txtQuelle1 = new TextBox { Top = 220, Left = 210, Width = 600, Text = "https://raw.githubusercontent.com/SCDeutsch/SCD/main/global.ini" };
+        txtQuelle2 = new TextBox { Top = 250, Left = 210, Width = 600, Text = "C:\\Program Files\\Roberts Space Industries\\StarCitizen\\LIVE\\data\\Localization\\english\\global.ini" };
+        txtQuelle3 = new TextBox { Top = 280, Left = 210, Width = 600, Text = "C:\\Program Files\\Roberts Space Industries\\StarCitizen\\PTU\\data\\Localization\\english\\global.ini" };
+        txtQuelle4 = new TextBox { Top = 310, Left = 210, Width = 600, Text = "C:\\Program Files\\Roberts Space Industries\\StarCitizen\\4.0_PREVIEW\\data\\Localization\\english\\global.ini" };
+
+        // Buttons für Quellen durchsuchen
+        btnBrowse2 = new Button { Text = "Durchsuchen", Top = 250, Left = 820 };
+        btnBrowse3 = new Button { Text = "Durchsuchen", Top = 280, Left = 820 };
+        btnBrowse4 = new Button { Text = "Durchsuchen", Top = 310, Left = 820 };
+        btnBrowse2.Click += (sender, e) => BrowseFile(txtQuelle2);
+        btnBrowse3.Click += (sender, e) => BrowseFile(txtQuelle3);
+        btnBrowse4.Click += (sender, e) => BrowseFile(txtQuelle4);
+        btnBrowse2.AutoSize = true;
+        btnBrowse3.AutoSize = true;
+        btnBrowse4.AutoSize = true;
+
+        // Button "Link zur Quelldatei"
+        btnOpenUrl = new Button { Text = "🔗", Top = 220, Left = 820, Width = 40, Height = 25 };
+        btnOpenUrl.Click += BtnOpenUrl_Click;
+
+        // CheckBox zum Auswählen der zu aktualisierenden Quellen
+        chkQuelle2 = new CheckBox { Top = 250, Left = 120, Text = "Aktivieren" };
+        chkQuelle3 = new CheckBox { Top = 280, Left = 120, Text = "Aktivieren" };
+        chkQuelle4 = new CheckBox { Top = 310, Left = 120, Text = "Aktivieren" };
+
+        // Button zum Starten der Aktualisierung
+        btnDownload = new Button { Text = "Jetzt alle ausgewählten 'global.ini' Dateien aktualisieren!", Top = 350, Left = 210 };
+        btnDownload.Click += BtnDownload_Click;
+        btnDownload.AutoSize = true;
+
+       // Buttons "Importieren" und "Exportieren"
+        btnImport = new Button { Text = "Quellen aus 'sources.txt' einfügen", Top = 180, Left = 210 };
+        btnImport.Click += BtnImport_Click;
+        btnImport.AutoSize = true;
+
+        btnSave = new Button { Text = "Aktuelle Eingaben nach 'sources.txt' exportieren", Top = 180, Left = 410 };
+        btnSave.Click += BtnSave_Click;
+        btnSave.AutoSize = true;
+
+        // Hinzufügen der Komponenten zur Form
+        Controls.Add(lblDescription);
+        Controls.Add(lblQuelle1);
+        Controls.Add(lblQuelle2);
+        Controls.Add(lblQuelle3);
+        Controls.Add(lblQuelle4);
+        Controls.Add(txtQuelle1);
+        Controls.Add(txtQuelle2);
+        Controls.Add(txtQuelle3);
+        Controls.Add(txtQuelle4);
+        Controls.Add(chkQuelle2);
+        Controls.Add(chkQuelle3);
+        Controls.Add(chkQuelle4);
+        Controls.Add(btnDownload);
+        Controls.Add(btnImport);
+        Controls.Add(btnSave);
+        Controls.Add(btnBrowse2);
+        Controls.Add(btnBrowse3);
+        Controls.Add(btnBrowse4);
+        Controls.Add(btnOpenUrl);
+    }
+
+    // Event-Handler für den Download
+    private async void BtnDownload_Click(object sender, EventArgs e)
+    {
+        string url = txtQuelle1.Text;
+        string[] zielPfade = new string[3];
+        int index = 0;
+
+        if (chkQuelle2.Checked)
+            zielPfade[index++] = txtQuelle2.Text;
+        if (chkQuelle3.Checked)
+            zielPfade[index++] = txtQuelle3.Text;
+        if (chkQuelle4.Checked)
+            zielPfade[index++] = txtQuelle4.Text;
+
+        if (string.IsNullOrEmpty(url) || index == 0)
+        {
+            MessageBox.Show("Bitte gebe eine URL und mindestens eine Zielquelle an.");
+            return;
+        }
+
+        try
+        {
+            // Datei herunterladen
+            byte[] dateiInhalt = await DownloadDateiAsync(url);
+
+            // Datei in die ausgewählten Quellen speichern
+            foreach (string zielPfad in zielPfade)
+            {
+                if (!string.IsNullOrEmpty(zielPfad))
+                {
+                    // Überprüfen, ob der Ordner existiert
+                    string ordner = Path.GetDirectoryName(zielPfad);
+
+                    if (!Directory.Exists(ordner))
+                    {
+                        var result = MessageBox.Show($"Der Ordner {ordner} existiert nicht. Möchtest du ihn erstellen?", "Ordner erstellen", MessageBoxButtons.YesNo);
+                        if (result == DialogResult.Yes)
+                        {
+                            Directory.CreateDirectory(ordner); // Ordner erstellen
+                        }
+                    }
+
+                    // Überprüfen, ob die Datei bereits existiert
+                    if (File.Exists(zielPfad))
+                    {
+                        var result = MessageBox.Show($"Die Datei {zielPfad} existiert bereits. Möchtest du sie überschreiben?", "Datei überschreiben", MessageBoxButtons.YesNo);
+                        if (result == DialogResult.No)
+                        {
+                            continue; // Datei nicht überschreiben
+                        }
+                    }
+
+                    // Datei speichern
+                    File.WriteAllBytes(zielPfad, dateiInhalt);
+                }
+            }
+
+            MessageBox.Show("Deine ausgewählten global.ini Dateien wurden aktualisiert!.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Fehler: {ex.Message}");
+        }
+    }
+
+    // Datei von der URL herunterladen
+    private async Task<byte[]> DownloadDateiAsync(string url)
+    {
+        using (HttpClient client = new HttpClient())
+        {
+            return await client.GetByteArrayAsync(url);
+        }
+    }
+
+    // Event-Handler für den Import aus 'sources.txt'
+    private void BtnImport_Click(object sender, EventArgs e)
+    {
+        string filePath = Path.Combine(Application.StartupPath, "sources.txt");
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                // Vor dem Laden der neuen Daten Textfelder leeren
+                txtQuelle1.Clear();
+                txtQuelle2.Clear();
+                txtQuelle3.Clear();
+                txtQuelle4.Clear();
+
+                // Datei lesen und die ersten 4 Zeilen extrahieren
+                string[] zeilen = File.ReadAllLines(filePath);
+
+                // Sicherstellen, dass die Datei mindestens 4 Zeilen enthält
+                if (zeilen.Length >= 4)
+                {
+                    txtQuelle1.Text = zeilen[0];
+                    txtQuelle2.Text = zeilen[1];
+                    txtQuelle3.Text = zeilen[2];
+                    txtQuelle4.Text = zeilen[3];
+                }
+                else
+                {
+                    MessageBox.Show("Die Datei 'sources.txt' muss mindestens 4 Zeilen enthalten.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Fehler beim Importieren der Datei: {ex.Message}");
+            }
+        }
+        else
+        {
+            MessageBox.Show("Die Datei 'sources.txt' wurde im aktuellen Ordner nicht gefunden.");
+        }
+    }
+
+    // Event-Handler für das Speichern der Quellen in die 'sources.txt'
+    private void BtnSave_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            // Die Quellen aus den Textfeldern in die Textdatei speichern
+            string[] zeilen = new string[]
+            {
+                txtQuelle1.Text,
+                txtQuelle2.Text,
+                txtQuelle3.Text,
+                txtQuelle4.Text
+            };
+
+            // Dateipfad zur 'sources.txt'
+            string filePath = Path.Combine(Application.StartupPath, "sources.txt");
+
+            // Text in die Datei schreiben (überschreiben, falls sie existiert)
+            File.WriteAllLines(filePath, zeilen);
+
+            MessageBox.Show("Die Quellen wurden erfolgreich gesichert.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Fehler beim Speichern der Datei: {ex.Message}");
+        }
+    }
+
+    // Ordner durchsuchen für die Zielpfade (auf .ini-Dateien beschränkt)
+    private void BrowseFile(TextBox targetTextBox)
+    {
+        OpenFileDialog fileDialog = new OpenFileDialog
+        {
+            Filter = "INI-Dateien (*.ini)|*.ini", // Nur .ini-Dateien anzeigen
+            Title = "Wählen Sie eine INI-Datei"
+        };
+
+        if (fileDialog.ShowDialog() == DialogResult.OK)
+        {
+            targetTextBox.Text = fileDialog.FileName;
+        }
+    }
+
+    // Event-Handler für das Öffnen der URL im Internetbrowser
+    private void BtnOpenUrl_Click(object sender, EventArgs e)
+    {
+        string url = txtQuelle1.Text;
+
+        // Überprüfen, ob die URL gültig ist
+        if (!string.IsNullOrEmpty(url) && Uri.IsWellFormedUriString(url, UriKind.Absolute))
+        {
+            try
+            {
+                // URL im Standard-Webbrowser öffnen
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Fehler beim Öffnen der URL: {ex.Message}");
+            }
+        }
+        else
+        {
+            MessageBox.Show("Ungültige URL. Bitte stelle sicher, dass es sich um eine vollständige und gültige URL handelt.");
+        }
+    }
+
+    // Main Methode, um das Fenster zu starten
+    [STAThread]
+    public static void Main()
+    {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        Application.Run(new MainForm());
+    }
+}
